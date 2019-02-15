@@ -14,7 +14,7 @@ using System.Text;
 
 namespace nc3d
 {
-    public class NC3D
+	public class NC3D
     {
         static NC3D()
         {
