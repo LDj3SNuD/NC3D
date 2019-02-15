@@ -192,7 +192,7 @@ namespace nc3d
             StringBuilder dstDis = new StringBuilder();
 
             using (StringReader sR = new StringReader(srcDis.ToString()))
-			{
+            {
                 string line;
 
                 while ((line = sR.ReadLine()) != null)
