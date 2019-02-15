@@ -16,7 +16,7 @@ namespace nc3d
 {
 	public class NC3D
     {
-        static NC3D()
+		static NC3D()
         {
             _basePath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         }
@@ -189,24 +189,24 @@ namespace nc3d
                 throw new ArgumentNullException(nameof(srcDis));
             }
 
-            StringBuilder dstDis = new StringBuilder();
+			StringBuilder dstDis = new StringBuilder();
 
-            using (StringReader sR = new StringReader(srcDis.ToString()))
+			using (StringReader sR = new StringReader(srcDis.ToString()))
 			{
-                string line;
+				string line;
 
-                while ((line = sR.ReadLine()) != null)
-                {
-                    int lIO;
+				while ((line = sR.ReadLine()) != null)
+				{
+					int lIO;
 
-                    if ((lIO = line.LastIndexOf(SepString)) != -1)
-                    {
-                        line = line.Substring(lIO + SepString.Length);
-                    }
+					if ((lIO = line.LastIndexOf(SepString)) != -1)
+					{
+						line = line.Substring(lIO + SepString.Length);
+					}
 
-                    dstDis.AppendLine(line);
-                }
-            }
+					dstDis.AppendLine(line);
+				}
+			}
 
             return dstDis;
         }
