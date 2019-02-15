@@ -191,7 +191,7 @@ namespace nc3d
 
             StringBuilder dstDis = new StringBuilder();
 
-			using (StringReader sR = new StringReader(srcDis.ToString()))
+            using (StringReader sR = new StringReader(srcDis.ToString()))
 			{
                 string line;
 
@@ -205,7 +205,7 @@ namespace nc3d
                     }
 
                     dstDis.AppendLine(line);
-				}
+                }
             }
 
             return dstDis;
