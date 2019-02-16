@@ -247,14 +247,14 @@ namespace nc3d
                     continue;
                 }
 
-                string[] lineStrings0 = line0.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                string[] lineStrings1 = line1.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] line0Strings = line0.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] line1Strings = line1.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
 
                 if (line0.Type == ChangeType.Deleted && line1.Type == ChangeType.Inserted)
                 {
-                    if (lineStrings0[0] == lineStrings1[0])
+                    if (line0Strings[0] == line1Strings[0])
                     {
-                        if (lineStrings0[1].StartsWith("0x") && lineStrings1[1].StartsWith("0x")) // Case sensitive.
+                        if (line0Strings[1].StartsWith("0x") && line1Strings[1].StartsWith("0x")) // Case sensitive.
                         {
                             // Preserves new values.
                             lines[i].Type = ChangeType.Unchanged;
@@ -287,19 +287,19 @@ namespace nc3d
                     continue;
                 }
 
-                string[] lineStrings0 = line0.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                string[] lineStrings1 = line1.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                string[] lineStrings2 = line2.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                string[] lineStrings3 = line3.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] line0Strings = line0.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] line1Strings = line1.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] line2Strings = line2.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] line3Strings = line3.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
 
                 if (line0.Type == ChangeType.Deleted && line2.Type == ChangeType.Inserted &&
                     line1.Type == ChangeType.Deleted && line3.Type == ChangeType.Inserted)
                 {
-                    if (lineStrings0[0] == lineStrings2[0] &&
-                        lineStrings1[0] == lineStrings3[0])
+                    if (line0Strings[0] == line2Strings[0] &&
+                        line1Strings[0] == line3Strings[0])
                     {
-                        if (lineStrings0[1].StartsWith("0x") && lineStrings2[1].StartsWith("0x") &&
-                            lineStrings1[1].StartsWith("0x") && lineStrings3[1].StartsWith("0x")) // Case sensitive.
+                        if (line0Strings[1].StartsWith("0x") && line2Strings[1].StartsWith("0x") &&
+                            line1Strings[1].StartsWith("0x") && line3Strings[1].StartsWith("0x")) // Case sensitive.
                         {
                             // Preserves new values.
                             lines[i - 1].Type = ChangeType.Unchanged;
