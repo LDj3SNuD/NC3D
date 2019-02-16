@@ -6,6 +6,7 @@ using Gee.External.Capstone;
 using Gee.External.Capstone.X86;
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -124,7 +125,7 @@ namespace nc3d
             }
 
             const int bytesAlign    = -25;
-            const int mnemonicAlign = -10;
+            const int mnemonicAlign = -15;
 
             long methodDesc      = GetMethodDesc(method).ToInt64();
             long startingAddress = GetCodeAddr  (method).ToInt64();
@@ -167,7 +168,7 @@ namespace nc3d
                         bytesCnt++;
                     }
 
-                    stringCode.AppendLine($"0x{instruction.Address:x4}{SepString}{stringBytes,bytesAlign}{SepString}{instruction.Mnemonic,mnemonicAlign}{instruction.Operand}");
+                    stringCode.AppendLine($"0x{instruction.Address:x4}{SepString}{stringBytes,bytesAlign}{SepString}{instruction.Mnemonic,mnemonicAlign} {instruction.Operand}");
                 }
             }
 
@@ -227,11 +228,96 @@ namespace nc3d
 
             InlineDiffBuilder diffBuilder = new InlineDiffBuilder(new Differ());
             DiffPaneModel     diffModel   = diffBuilder.BuildDiffModel(oldDis.ToString(), newDis.ToString());
+            List<DiffPiece>   lines       = diffModel.Lines;
+
+            /*
+            From:
+                - call  0x0123456789abcdef_old
+                + call  0x0123456789abcdef_new
+            To:
+                + call  0x0123456789abcdef_new
+            */
+            for (int i = 1; i < lines.Count; i++)
+            {
+                DiffPiece line0 = lines[i - 1];
+                DiffPiece line1 = lines[i];
+
+                if (line0.Text == String.Empty || line1.Text == String.Empty)
+                {
+                    continue;
+                }
+
+                string[] lineStrings0 = line0.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] lineStrings1 = line1.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+
+                if (line0.Type == ChangeType.Deleted && line1.Type == ChangeType.Inserted)
+                {
+                    if (lineStrings0[0] == lineStrings1[0])
+                    {
+                        if (lineStrings0[1].StartsWith("0x") && lineStrings1[1].StartsWith("0x")) // Case sensitive.
+                        {
+                            // Preserves new values.
+                            lines[i].Type = ChangeType.Unchanged;
+
+                            lines.RemoveAt(i - 1);
+                        }
+                    }
+                }
+            }
+
+            /*
+            From:
+                - call  0x0123456789abcdef_old
+                - jmp   0x0123456789abcdef_old
+                + call  0x0123456789abcdef_new
+                + jmp   0x0123456789abcdef_new
+            To:
+                + call  0x0123456789abcdef_new
+                + jmp   0x0123456789abcdef_new
+            */
+            for (int i = 3; i < lines.Count; i++)
+            {
+                DiffPiece line0 = lines[i - 3];
+                DiffPiece line1 = lines[i - 2];
+                DiffPiece line2 = lines[i - 1];
+                DiffPiece line3 = lines[i];
+
+                if (line0.Text == String.Empty || line1.Text == String.Empty || line2.Text == String.Empty || line3.Text == String.Empty)
+                {
+                    continue;
+                }
+
+                string[] lineStrings0 = line0.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] lineStrings1 = line1.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] lineStrings2 = line2.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                string[] lineStrings3 = line3.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+
+                if (line0.Type == ChangeType.Deleted && line2.Type == ChangeType.Inserted &&
+                    line1.Type == ChangeType.Deleted && line3.Type == ChangeType.Inserted)
+                {
+                    if (lineStrings0[0] == lineStrings2[0] &&
+                        lineStrings1[0] == lineStrings3[0])
+                    {
+                        if (lineStrings0[1].StartsWith("0x") && lineStrings2[1].StartsWith("0x") &&
+                            lineStrings1[1].StartsWith("0x") && lineStrings3[1].StartsWith("0x")) // Case sensitive.
+                        {
+                            // Preserves new values.
+                            lines[i - 1].Type = ChangeType.Unchanged;
+                            lines[i].Type     = ChangeType.Unchanged;
+
+                            lines.RemoveAt(i - 3);
+                            lines.RemoveAt(i - 3);
+
+                            i++;
+                        }
+                    }
+                }
+            }
 
             int insCnt = 0;
             int delCnt = 0;
 
-            foreach (DiffPiece line in diffModel.Lines)
+            foreach (DiffPiece line in lines)
             {
                 if (line.Text == String.Empty)
                 {
