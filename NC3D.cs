@@ -117,7 +117,7 @@ namespace nc3d
 
         private const string SepString = " | ";
 
-        public static StringBuilder DisassembleDynMthd(DynamicMethod method)
+        public static StringBuilder DisassembleOpCodes(DynamicMethod method)
         {
             if (method == null)
             {
@@ -137,7 +137,7 @@ namespace nc3d
 
             StringBuilder stringCode = new StringBuilder();
 
-            stringCode.AppendLine($"MethodDesc 0x{methodDesc:X16}{SepString}{method}");
+            stringCode.AppendLine($"{nameof(NC3D)}{SepString}MethodDesc 0x{methodDesc:X16}{SepString}{method}");
             stringCode.AppendLine();
 
             using (CapstoneX86Disassembler disassembler = CapstoneDisassembler.CreateX86Disassembler(X86DisassembleMode.Bit64))
@@ -183,7 +183,63 @@ namespace nc3d
             return stringCode;
         }
 
-        public static StringBuilder PrepareForDiffDis(StringBuilder srcDis)
+        public static StringBuilder PrepareForDiffDisStepOne(StringBuilder srcDis)
+        {
+            if (srcDis == null)
+            {
+                throw new ArgumentNullException(nameof(srcDis));
+            }
+
+            string srcDisString = srcDis.ToString();
+
+            StringBuilder dstDis = new StringBuilder(srcDisString);
+
+            using (StringReader sR = new StringReader(srcDisString))
+            {
+                int locCnt  = 1;
+                int callCnt = 1;
+
+                string lineString;
+
+                while ((lineString = sR.ReadLine()) != null)
+                {
+                    if (lineString == String.Empty)
+                    {
+                        continue;
+                    }
+
+                    string[] lineStrings = lineString.Split(SepString, 3);
+
+                    string addressString            = lineStrings[0];
+                    string mnemonicAndOperandString = lineStrings[2];
+
+                    if (srcDisString.IndexOf(addressString) != srcDisString.LastIndexOf(addressString))
+                    {
+                        dstDis.Replace(lineString,    $"{Environment.NewLine}LOC_0x{locCnt:X}:{Environment.NewLine}{mnemonicAndOperandString}");
+                        dstDis.Replace(addressString, $"LOC_0x{locCnt:X}");
+
+                        locCnt++;
+                    }
+
+                    if (mnemonicAndOperandString.Contains("call", StringComparison.InvariantCulture) &&
+                        mnemonicAndOperandString.Contains("0x",   StringComparison.InvariantCulture))
+                    {
+                        string[] mnemonicAndOperandStrings = mnemonicAndOperandString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                        if (mnemonicAndOperandStrings.Length == 2)
+                        {
+                            dstDis.Replace(mnemonicAndOperandStrings[1], $"CALL_0x{callCnt:X}");
+
+                            callCnt++;
+                        }
+                    }
+                }
+            }
+
+            return dstDis;
+        }
+
+        public static StringBuilder PrepareForDiffDisStepTwo(StringBuilder srcDis)
         {
             if (srcDis == null)
             {
@@ -228,102 +284,12 @@ namespace nc3d
 
             InlineDiffBuilder diffBuilder = new InlineDiffBuilder(new Differ());
             DiffPaneModel     diffModel   = diffBuilder.BuildDiffModel(oldDis.ToString(), newDis.ToString());
-            List<DiffPiece>   lines       = diffModel.Lines;
-
-            /*
-            From:
-                - call  0x0123456789abcdef_old
-                + call  0x0123456789abcdef_new
-            To:
-                + call  0x0123456789abcdef_new
-            */
-            for (int i = 1; i < lines.Count; i++)
-            {
-                DiffPiece line0 = lines[i - 1];
-                DiffPiece line1 = lines[i];
-
-                if (line0.Text == String.Empty || line1.Text == String.Empty)
-                {
-                    continue;
-                }
-
-                string[] line0Strings = line0.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                string[] line1Strings = line1.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-
-                if (line0.Type == ChangeType.Deleted && line1.Type == ChangeType.Inserted)
-                {
-                    if (line0Strings[0] == line1Strings[0])
-                    {
-                        if (line0Strings[1].StartsWith("0x") && line1Strings[1].StartsWith("0x")) // Case sensitive.
-                        {
-                            // Preserves new values.
-                            lines[i].Type = ChangeType.Unchanged;
-
-                            lines.RemoveAt(i - 1);
-                        }
-                    }
-                }
-            }
-
-            /*
-            From:
-                - call  0x0123456789abcdef_old
-                - jmp   0x0123456789abcdef_old
-                + call  0x0123456789abcdef_new
-                + jmp   0x0123456789abcdef_new
-            To:
-                + call  0x0123456789abcdef_new
-                + jmp   0x0123456789abcdef_new
-            */
-            for (int i = 3; i < lines.Count; i++)
-            {
-                DiffPiece line0 = lines[i - 3];
-                DiffPiece line1 = lines[i - 2];
-                DiffPiece line2 = lines[i - 1];
-                DiffPiece line3 = lines[i];
-
-                if (line0.Text == String.Empty || line1.Text == String.Empty || line2.Text == String.Empty || line3.Text == String.Empty)
-                {
-                    continue;
-                }
-
-                string[] line0Strings = line0.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                string[] line1Strings = line1.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                string[] line2Strings = line2.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                string[] line3Strings = line3.Text.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-
-                if (line0.Type == ChangeType.Deleted && line2.Type == ChangeType.Inserted &&
-                    line1.Type == ChangeType.Deleted && line3.Type == ChangeType.Inserted)
-                {
-                    if (line0Strings[0] == line2Strings[0] &&
-                        line1Strings[0] == line3Strings[0])
-                    {
-                        if (line0Strings[1].StartsWith("0x") && line2Strings[1].StartsWith("0x") &&
-                            line1Strings[1].StartsWith("0x") && line3Strings[1].StartsWith("0x")) // Case sensitive.
-                        {
-                            // Preserves new values.
-                            lines[i - 1].Type = ChangeType.Unchanged;
-                            lines[i].Type     = ChangeType.Unchanged;
-
-                            lines.RemoveAt(i - 3);
-                            lines.RemoveAt(i - 3);
-
-                            i++;
-                        }
-                    }
-                }
-            }
 
             int insCnt = 0;
             int delCnt = 0;
 
-            foreach (DiffPiece line in lines)
+            foreach (DiffPiece line in diffModel.Lines)
             {
-                if (line.Text == String.Empty)
-                {
-                    continue;
-                }
-
                 switch (line.Type)
                 {
                     case ChangeType.Inserted:
@@ -363,8 +329,11 @@ namespace nc3d
 
             if (insCnt != 0 || delCnt != 0)
             {
-                diffDis.AppendLine();
                 diffDis.AppendLine($"{insCnt} additions & {delCnt} deletions");
+            }
+            else
+            {
+                diffDis.AppendLine("There's no difference.");
             }
 
             return diffDis;
@@ -395,7 +364,7 @@ namespace nc3d
             {
                 string y = Path.GetFileNameWithoutExtension(x);
 
-                if (y.StartsWith(method.Name)) // Case sensitive.
+                if (y.StartsWith(method.Name, StringComparison.InvariantCultureIgnoreCase))
                 {
                     int lI = y.LastIndexOf("_");
 
@@ -416,7 +385,7 @@ namespace nc3d
 
             if (cnt == 0)
             {
-                StringBuilder sB = DisassembleDynMthd(method);
+                StringBuilder sB = DisassembleOpCodes(method);
 
                 string fileName = $"{method.Name}_{cnt}.txt";
 
@@ -429,16 +398,16 @@ namespace nc3d
                 StringBuilder sBOld = new StringBuilder(File.ReadAllText(Path.Combine(workPath, fileNameOld)));
 
 
-                StringBuilder sBNew = DisassembleDynMthd(method);
+                StringBuilder sBNew = DisassembleOpCodes(method);
 
                 string fileNameNew = $"{method.Name}_{max + 1}.txt";
 
                 File.WriteAllText(Path.Combine(workPath, fileNameNew), sBNew.ToString());
 
 
-                StringBuilder sBOldPrep = PrepareForDiffDis(sBOld);
+                StringBuilder sBOldPrep = PrepareForDiffDisStepTwo(PrepareForDiffDisStepOne(sBOld));
 
-                StringBuilder sBNewPrep = PrepareForDiffDis(sBNew);
+                StringBuilder sBNewPrep = PrepareForDiffDisStepTwo(PrepareForDiffDisStepOne(sBNew));
 
                 StringBuilder sBDiff = BuildDiffDis(sBOldPrep, sBNewPrep);
 
