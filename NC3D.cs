@@ -295,7 +295,7 @@ namespace nc3d
                     {
                         diffDis.Append("+ ");
 
-                        if (Char.IsLower(line.Text, 0))
+                        if (line.Text != String.Empty && Char.IsLower(line.Text, 0))
                         {
                             insCnt++;
                         }
@@ -307,7 +307,7 @@ namespace nc3d
                     {
                         diffDis.Append("- ");
 
-                        if (Char.IsLower(line.Text, 0))
+                        if (line.Text != String.Empty && Char.IsLower(line.Text, 0))
                         {
                             delCnt++;
                         }
