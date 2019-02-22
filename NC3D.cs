@@ -6,7 +6,6 @@ using Gee.External.Capstone;
 using Gee.External.Capstone.X86;
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
