@@ -328,11 +328,11 @@ namespace nc3d
 
             if (insCnt != 0 || delCnt != 0)
             {
-                diffDis.AppendLine($"{insCnt} additions & {delCnt} deletions");
+                diffDis.AppendLine($"{insCnt} additions & {delCnt} deletions.");
             }
             else
             {
-                diffDis.AppendLine("There's no difference.");
+                diffDis.AppendLine("No differences were found.");
             }
 
             return diffDis;
