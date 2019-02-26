@@ -136,7 +136,7 @@ namespace nc3d
 
             StringBuilder stringCode = new StringBuilder();
 
-            stringCode.AppendLine($"{nameof(NC3D)}{SepString}MethodDesc 0x{methodDesc:X16}{SepString}{method}");
+            stringCode.AppendLine($"{nameof(NC3D)}{SepString}MethodDesc 0x{methodDesc:X}{SepString}{method}");
             stringCode.AppendLine();
 
             using (CapstoneX86Disassembler disassembler = CapstoneDisassembler.CreateX86Disassembler(X86DisassembleMode.Bit64))
@@ -167,7 +167,7 @@ namespace nc3d
                         bytesCnt++;
                     }
 
-                    stringCode.AppendLine($"0x{instruction.Address:x4}{SepString}{stringBytes,bytesAlign}{SepString}{instruction.Mnemonic,mnemonicAlign} {instruction.Operand}");
+                    stringCode.AppendLine($"0x{instruction.Address:x8}{SepString}{stringBytes,bytesAlign}{SepString}{instruction.Mnemonic,mnemonicAlign} {instruction.Operand}");
                 }
             }
 
@@ -177,7 +177,7 @@ namespace nc3d
             }
 
             stringCode.AppendLine();
-            stringCode.AppendLine($"Begin 0x{startingAddress:X16}{SepString}Size {bytesCnt} (0x{bytesCnt:X}) bytes{SepString}{instCnt} instructions");
+            stringCode.AppendLine($"Begin 0x{startingAddress:X}{SepString}Size {bytesCnt} (0x{bytesCnt:X}) bytes{SepString}{instCnt} instructions");
 
             return stringCode;
         }
@@ -212,12 +212,15 @@ namespace nc3d
                     string addressString            = lineStrings[0];
                     string mnemonicAndOperandString = lineStrings[2];
 
-                    if (srcDisString.IndexOf(addressString) != srcDisString.LastIndexOf(addressString))
+                    if (addressString.Length > 8)
                     {
-                        dstDis.Replace(lineString,    $"{Environment.NewLine}LOC_0x{locCnt:X}:{Environment.NewLine}{mnemonicAndOperandString}");
-                        dstDis.Replace(addressString, $"LOC_0x{locCnt:X}");
+                        if (srcDisString.IndexOf(addressString) != srcDisString.LastIndexOf(addressString))
+                        {
+                            dstDis.Replace(lineString,    $"{Environment.NewLine}LOC_0x{locCnt:X}:{Environment.NewLine}{mnemonicAndOperandString}");
+                            dstDis.Replace(addressString, $"LOC_0x{locCnt:X}");
 
-                        locCnt++;
+                            locCnt++;
+                        }
                     }
 
                     if (mnemonicAndOperandString.Contains("call", StringComparison.InvariantCulture) &&
