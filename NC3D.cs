@@ -147,7 +147,7 @@ namespace nc3d
                 X86Instruction[] instructions = disassembler.Disassemble(binaryCode, startingAddress);
 
                 int lastIndexRets = Array.FindLastIndex(instructions, instruction => instruction.Id == X86InstructionId.X86_INS_RET && instruction.Bytes.Length == 1);
-                int lastIndexInt3 = Array.FindLastIndex(instructions, instruction => instruction.Id == X86InstructionId.X86_INS_INT3);
+                int lastIndexInt3 = Array.FindIndex    (instructions, instruction => instruction.Id == X86InstructionId.X86_INS_INT3);
                 int lastIndexJmps = Array.FindLastIndex(instructions, instruction => instruction.Id == X86InstructionId.X86_INS_JMP);
 
                 int lastIndex = Math.Max(Math.Max(lastIndexRets, lastIndexInt3), lastIndexJmps);
